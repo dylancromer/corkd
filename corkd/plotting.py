@@ -17,14 +17,27 @@ import corkd.kde
 
 
 @dataclass
+class Style:
+    contour_levels: int
+    line_color: str
+
+
+default_style = Style(
+    contour_levels=4,
+    line_color='black',
+)
+
+
+@dataclass
 class Axis:
     mpl_ax: object
+    style: object
 
     def add_plot(self, xs, ys):
-        self.mpl_ax.plot(xs, ys, color='black')
+        self.mpl_ax.plot(xs, ys, color=self.style.line_color)
 
     def add_contour_plot(self, xs, ys, zs):
-        self.mpl_ax.contour(xs, ys, zs.T, origin='lower', colors='black')
+        self.mpl_ax.contour(xs, ys, zs.T, levels=self.style.contour_levels, origin='lower', colors=self.style.line_color)
 
     def unset_shared_y(self, axes_to_remove):
         grouper = self.mpl_ax.get_shared_y_axes()
@@ -35,10 +48,10 @@ class Axis:
 
 class CornerFigure:
     def _get_diagonals(self):
-        return [Axis(self._axes[i, i]) for i in range(self.ndim)]
+        return [Axis(self._axes[i, i], style=self.style) for i in range(self.ndim)]
 
     def _get_off_diagonals(self):
-        return [Axis(self._axes[i, j]) for j in range(self.ndim) for i in range(self.ndim) if (i != j) and (i > j)]
+        return [Axis(self._axes[i, j], style=self.style) for j in range(self.ndim) for i in range(self.ndim) if (i != j) and (i > j)]
 
     def clear_upper_off_diag(self):
         for j in range(self.ndim):
@@ -53,8 +66,9 @@ class CornerFigure:
     def delete_top_left_yticks(self):
         self._axes[0, 0].set_yticks([])
 
-    def __init__(self, ndim):
+    def __init__(self, ndim, style):
         self.ndim = ndim
+        self.style = style
         self._figure, self._axes = plt.subplots(ndim, ndim, sharex='col', sharey='row')
         self.diagonals = self._get_diagonals()
         self.off_diagonals = self._get_off_diagonals()
@@ -70,6 +84,9 @@ class CornerFigure:
     def save_as(self, file_name):
         self._figure.savefig(file_name, bbox_inches='tight')
 
+    def set_size(self, figsize):
+        self._figure.set_size_inches(figsize)
+
 
 class CornerPlot:
     def _check_chains(self, chains):
@@ -83,7 +100,8 @@ class CornerPlot:
         for density_2d, axis in zip(densities_2d, self.corner_figure.off_diagonals):
             axis.add_contour_plot(density_2d.grid_1, density_2d.grid_2, density_2d.values)
 
-        self.corner_figure.set_labels(labels)
+        if labels is not None:
+            self.corner_figure.set_labels(labels)
 
     def _get_1d_densities(self, chains):
         densities_1d = []
@@ -102,13 +120,14 @@ class CornerPlot:
             densities_2d.append(corkd.kde.Density2D(tuple(chain_pair)))
         return densities_2d
 
-    def __init__(self, chains, labels=None):
+    def __init__(self, chains, labels=None, style=default_style):
         self._check_chains(chains)
         self.ndim = chains.shape[1]
-        self.corner_figure = CornerFigure(ndim=self.ndim)
+        self.corner_figure = CornerFigure(ndim=self.ndim, style=style)
         densities_1d = self._get_1d_densities(chains)
         densities_2d = self._get_2d_densities(chains)
         self._create_plots(densities_1d, densities_2d, labels)
 
-    def save_as(self, file_name):
+    def save_as(self, file_name, fig_size=(5.5, 5)):
+        self.corner_figure.set_size(fig_size)
         self.corner_figure.save_as(file_name)
