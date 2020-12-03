@@ -43,6 +43,11 @@ class Axis:
         grouper = self.mpl_ax.get_shared_y_axes()
         for axis in axes_to_remove:
             grouper.remove(axis.mpl_ax)
+        self.mpl_ax.yaxis.major = matplotlib.axis.Ticker()
+        self.mpl_ax.yaxis.set_major_locator(matplotlib.ticker.AutoLocator())
+        self.mpl_ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+
+    def remove_ygrid(self):
         self.mpl_ax.yaxis.grid()
 
 
@@ -60,8 +65,11 @@ class CornerFigure:
                     self._axes[i, j].remove()
 
     def remove_shared_y_axes_from_diag(self):
+        for axis in self.off_diagonals:
+            axis.unset_shared_y(self.diagonals)
         for axis in self.diagonals:
             axis.unset_shared_y(self.off_diagonals)
+            axis.remove_ygrid()
 
     def delete_top_left_yticks(self):
         self._axes[0, 0].set_yticks([])
