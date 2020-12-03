@@ -13,8 +13,20 @@ def describe_CornerPlot():
     def labels():
         return [r'$a_\mathrm{SZ}$', r'$c$', r'$\alpha$', r'$\beta$']
 
-    def it_creates_a_cornerplot_of_kd_estimates(chains, labels):
-        cornerplot = corkd.CornerPlot(chains, labels=labels)
+    @pytest.fixture
+    def bw_method():
+        return 'scott'
+
+    @pytest.fixture
+    def style():
+        return corkd.Style(
+            linewidth=1,
+            line_color='#1d3a59',
+            contour_levels=6,
+        )
+
+    def it_creates_a_cornerplot_of_kd_estimates(chains, labels, bw_method, style):
+        cornerplot = corkd.CornerPlot(chains, labels=labels, kde_kwargs={'bw_method': bw_method}, style=style)
         cornerplot.save_as('test_cornerplot.pdf')
 
     def it_only_allows_2d_chains():
@@ -38,6 +50,6 @@ def describe_CornerPlot():
     def labels_2():
         return [r'$a_\mathrm{SZ}$', r'$a_\mathrm{2h}$', r'$c$', r'$\alpha$', r'$\beta$']
 
-    def it_creates_a_cornerplot_of_kd_estimates_2(chains_2, labels_2):
-        cornerplot = corkd.CornerPlot(chains_2, labels=labels_2)
+    def it_creates_a_cornerplot_of_kd_estimates_2(chains_2, labels_2, bw_method, style):
+        cornerplot = corkd.CornerPlot(chains_2, labels=labels_2, kde_kwargs={'bw_method': bw_method}, style=style)
         cornerplot.save_as('test_cornerplot_2.pdf')

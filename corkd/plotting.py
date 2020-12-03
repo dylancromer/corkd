@@ -1,3 +1,4 @@
+from types import MappingProxyType
 from dataclasses import dataclass
 import itertools
 import matplotlib
@@ -18,14 +19,12 @@ import corkd.kde
 
 @dataclass
 class Style:
-    contour_levels: int
-    line_color: str
+    contour_levels: int = 4
+    line_color: str = 'black'
+    linewidth: float = None
 
 
-default_style = Style(
-    contour_levels=4,
-    line_color='black',
-)
+default_style = Style()
 
 
 @dataclass
@@ -34,10 +33,23 @@ class Axis:
     style: object
 
     def add_plot(self, xs, ys):
-        self.mpl_ax.plot(xs, ys, color=self.style.line_color)
+        self.mpl_ax.plot(
+            xs,
+            ys,
+            color=self.style.line_color,
+            linewidth=self.style.linewidth,
+        )
 
     def add_contour_plot(self, xs, ys, zs):
-        self.mpl_ax.contour(xs, ys, zs.T, levels=self.style.contour_levels, origin='lower', colors=self.style.line_color)
+        self.mpl_ax.contour(
+            xs,
+            ys,
+            zs.T,
+            levels=self.style.contour_levels,
+            origin='lower',
+            colors=self.style.line_color,
+            linewidths=self.style.linewidth,
+        )
 
     def unset_shared_y(self, axes_to_remove):
         grouper = self.mpl_ax.get_shared_y_axes()
@@ -114,7 +126,7 @@ class CornerPlot:
     def _get_1d_densities(self, chains):
         densities_1d = []
         for i in range(self.ndim):
-            densities_1d.append(corkd.kde.Density1D(chains[:, i]))
+            densities_1d.append(corkd.kde.Density1D(chains[:, i], kde_kwargs=self.kde_kwargs))
         return densities_1d
 
     def _get_all_pairs(self, chains):
@@ -125,12 +137,13 @@ class CornerPlot:
         chain_pairs = self._get_all_pairs(chains)
         densities_2d = []
         for chain_pair in chain_pairs:
-            densities_2d.append(corkd.kde.Density2D(tuple(chain_pair)))
+            densities_2d.append(corkd.kde.Density2D(tuple(chain_pair), kde_kwargs=self.kde_kwargs))
         return densities_2d
 
-    def __init__(self, chains, labels=None, style=default_style):
+    def __init__(self, chains, labels=None, style=default_style, kde_kwargs=MappingProxyType({})):
         self._check_chains(chains)
         self.ndim = chains.shape[1]
+        self.kde_kwargs = kde_kwargs
         self.corner_figure = CornerFigure(ndim=self.ndim, style=style)
         densities_1d = self._get_1d_densities(chains)
         densities_2d = self._get_2d_densities(chains)
